@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: BXAgent Eclipse Plugin
+Bundle-SymbolicName: dev.bxagent.eclipse;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: dev.bxagent.eclipse.Activator
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.core.resources,
+ org.eclipse.jface,
+ org.eclipse.ui.workbench,
+ org.eclipse.ui.ide
+Bundle-ClassPath: lib/bx-agent-1.0.0-SNAPSHOT.jar,
+ lib/bx-runtime-1.0.0-SNAPSHOT.jar,
+ .
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Automatic-Module-Name: dev.bxagent.eclipse
+Bundle-ActivationPolicy: lazy
