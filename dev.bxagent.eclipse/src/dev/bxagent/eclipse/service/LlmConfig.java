@@ -36,6 +36,12 @@ public final class LlmConfig {
         return new LlmConfig(Provider.OLLAMA, model, null, url);
     }
 
+    /** Ollama with a Bearer-token API key (e.g. for JupyterHub proxied instances). */
+    public static LlmConfig ollama(String url, String model, String apiKey) {
+        return new LlmConfig(Provider.OLLAMA, model,
+                (apiKey != null && !apiKey.isBlank()) ? apiKey : null, url);
+    }
+
     public Provider getProvider()  { return provider; }
     public String   getModel()     { return model; }
     public String   getApiKey()    { return apiKey; }

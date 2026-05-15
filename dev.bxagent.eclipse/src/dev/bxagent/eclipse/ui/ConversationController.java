@@ -2,6 +2,10 @@ package dev.bxagent.eclipse.ui;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IWorkspaceRoot;
@@ -16,6 +20,8 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerFilter;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.ElementTreeSelectionDialog;
 import org.eclipse.ui.model.WorkbenchContentProvider;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
@@ -172,7 +178,8 @@ public final class ConversationController {
 
         Job job = Job.create("BXAgent: Extract Mapping", (IProgressMonitor monitor) -> {
             try {
-                BXAgentSession updated = service.extractMapping(session, buildLlmConfig(), null);
+                BXAgentSession updated = service.extractMapping(
+                        session, buildLlmConfig(), null, buildExcludeList());
                 display.asyncExec(() -> {
                     session = updated;
                     setState(State.SPEC_READY);
@@ -181,6 +188,7 @@ public final class ConversationController {
                             "\u2713 Mapping extracted.\n\n" +
                             "Type \u201Cyes\u201D or click the button to generate the transformation class.");
                     appendActionPrompt("Generate Code", () -> doGenerate());
+                    openMappingSpecView(updated.getSpecJson());
                 });
             } catch (Exception e) {
                 display.asyncExec(() -> {
@@ -334,7 +342,9 @@ public final class ConversationController {
                         prefs.getString(BXAgentPreferenceConstants.LLM_OPENAI_KEY), model);
             case "ollama":
                 return LlmConfig.ollama(
-                        prefs.getString(BXAgentPreferenceConstants.LLM_OLLAMA_URL), model);
+                        prefs.getString(BXAgentPreferenceConstants.LLM_OLLAMA_URL),
+                        model,
+                        prefs.getString(BXAgentPreferenceConstants.LLM_OLLAMA_KEY));
             default: // anthropic
                 return LlmConfig.anthropic(
                         prefs.getString(BXAgentPreferenceConstants.LLM_ANTHROPIC_KEY), model);
@@ -349,6 +359,17 @@ public final class ConversationController {
                     .append("generated").toFile().toPath();
         }
         return Paths.get(raw);
+    }
+
+    /** Reads the comma-separated exclude list from prefs and returns it as a {@code List}. */
+    private List<String> buildExcludeList() {
+        var prefs = Activator.getDefault().getPreferenceStore();
+        String raw = prefs.getString(BXAgentPreferenceConstants.AGENT_EXCLUDE_LIST);
+        if (raw == null || raw.isBlank()) return Collections.emptyList();
+        return Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
     }
 
     // -----------------------------------------------------------------------
@@ -391,5 +412,23 @@ public final class ConversationController {
 
     public State getState() {
         return state;
+    }
+
+    /**
+     * Opens (or activates) the {@link MappingSpecView} in the current workbench
+     * page and populates it with the given JSON spec.
+     * Must be called on the SWT UI thread.
+     */
+    private void openMappingSpecView(String specJson) {
+        if (specJson == null || specJson.isBlank()) return;
+        try {
+            IWorkbenchPage page = PlatformUI.getWorkbench()
+                    .getActiveWorkbenchWindow().getActivePage();
+            MappingSpecView specView = MappingSpecView.show(page);
+            specView.populate(specJson);
+        } catch (Exception e) {
+            // Non-fatal: chat still works without the spec view
+            appendError("Could not open Mapping Spec view: " + e.getMessage());
+        }
     }
 }

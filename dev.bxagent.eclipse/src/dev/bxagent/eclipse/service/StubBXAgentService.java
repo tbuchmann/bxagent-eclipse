@@ -25,8 +25,7 @@ public final class StubBXAgentService implements IBXAgentService {
 
     @Override
     public BXAgentSession extractMapping(BXAgentSession session, LlmConfig config,
-            Path cacheFile) throws Exception {
-        // TODO: replace with real BXAgentService.extractMapping() call
+            Path cacheFile, List<String> excludes) throws Exception {
         throw new UnsupportedOperationException(MSG);
     }
 

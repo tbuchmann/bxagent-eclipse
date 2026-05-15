@@ -69,6 +69,13 @@ public class BXAgentPreferencePage extends FieldEditorPreferencePage
                 "Ollama URL:",
                 getFieldEditorParent()));
 
+        StringFieldEditor ollamaKey = new StringFieldEditor(
+                BXAgentPreferenceConstants.LLM_OLLAMA_KEY,
+                "Ollama API key (Bearer token, optional):",
+                getFieldEditorParent());
+        ollamaKey.getTextControl(getFieldEditorParent()).setEchoChar('*');
+        addField(ollamaKey);
+
         // -- Code generation -----------------------------------------------
         addField(new DirectoryFieldEditor(
                 BXAgentPreferenceConstants.AGENT_OUTPUT_DIR,
@@ -81,5 +88,10 @@ public class BXAgentPreferencePage extends FieldEditorPreferencePage
                 getFieldEditorParent());
         maxFix.setValidRange(1, 10);
         addField(maxFix);
+
+        addField(new StringFieldEditor(
+                BXAgentPreferenceConstants.AGENT_EXCLUDE_LIST,
+                "Exclude from mapping (comma-separated class/attribute names):",
+                getFieldEditorParent()));
     }
 }

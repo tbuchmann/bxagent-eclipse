@@ -24,9 +24,23 @@ public final class BXAgentPreferenceConstants {
     /** Ollama base URL. */
     public static final String LLM_OLLAMA_URL    = "llm.ollamaUrl"; //$NON-NLS-1$
 
+    /**
+     * Ollama API key (Bearer token).
+     * Required when Ollama is behind an authenticated proxy (e.g. JupyterHub).
+     * Leave blank for a plain local Ollama instance.
+     */
+    public static final String LLM_OLLAMA_KEY    = "llm.ollamaKey"; //$NON-NLS-1$
+
     /** Directory where generated .java files are written. */
     public static final String AGENT_OUTPUT_DIR  = "agent.outputDir"; //$NON-NLS-1$
 
     /** Maximum number of LLM-assisted fix attempts during compilation. */
     public static final String MAX_FIX_ATTEMPTS  = "agent.maxFixAttempts"; //$NON-NLS-1$
+
+    /**
+     * Comma-separated list of EClass or EAttribute names to exclude from the
+     * mapping prompt (mirrors the {@code --exclude} CLI flag).
+     * Example: {@code "id, updatedAt, internalField"}
+     */
+    public static final String AGENT_EXCLUDE_LIST = "agent.excludeList"; //$NON-NLS-1$
 }

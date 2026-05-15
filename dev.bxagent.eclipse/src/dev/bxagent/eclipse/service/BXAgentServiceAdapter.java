@@ -2,7 +2,13 @@ package dev.bxagent.eclipse.service;
 
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
+
+import org.eclipse.core.runtime.ILog;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.Status;
 
 import dev.bxagent.llm.LlmClient;
 import dev.bxagent.llm.LlmClientFactory;
@@ -23,8 +29,14 @@ import dev.bxagent.validation.CompilationValidator;
  * <h3>LlmConfig bridging</h3>
  * The plugin's {@link LlmConfig} is converted to the JAR's
  * {@code dev.bxagent.llm.LlmConfig} via {@code LlmConfig.fromProperties()}.
+ * Property keys used by the JAR: {@code llm.provider}, {@code llm.model},
+ * {@code llm.api_key}, {@code llm.base_url}.
  */
 public final class BXAgentServiceAdapter implements IBXAgentService {
+
+    private static final String PLUGIN_ID = "dev.bxagent.eclipse";
+    private static final ILog   LOG       = Platform.getLog(
+            BXAgentServiceAdapter.class);
 
     private final dev.bxagent.service.BXAgentService delegate =
             new dev.bxagent.service.BXAgentService();
@@ -35,60 +47,95 @@ public final class BXAgentServiceAdapter implements IBXAgentService {
 
     @Override
     public BXAgentSession load(Path leftEcore, Path rightEcore) throws Exception {
-        dev.bxagent.service.BXAgentService.Session s =
-                delegate.load(leftEcore, rightEcore);
-        return wrap(s, null);
+        log(IStatus.INFO, "Loading metamodels: " + leftEcore + ", " + rightEcore, null);
+        try {
+            dev.bxagent.service.BXAgentService.Session s =
+                    delegate.load(leftEcore, rightEcore);
+            log(IStatus.INFO, "Metamodels loaded successfully.", null);
+            return wrap(s, null);
+        } catch (Exception e) {
+            log(IStatus.ERROR, "Failed to load metamodels", e);
+            throw e;
+        }
     }
 
     @Override
     public BXAgentSession extractMapping(BXAgentSession session,
-            LlmConfig config, Path cacheFile) throws Exception {
+            LlmConfig config, Path cacheFile, List<String> excludes) throws Exception {
 
         dev.bxagent.service.BXAgentService.Session inner = unwrap(session);
-        LlmClient client = LlmClientFactory.create(toJarConfig(config));
+        dev.bxagent.llm.LlmConfig jarConfig = toJarConfig(config);
+        log(IStatus.INFO,
+                "extractMapping — provider=" + jarConfig.getProvider()
+                + ", model=" + jarConfig.getModel()
+                + ", baseUrl=" + jarConfig.getBaseUrl()
+                + ", excludes=" + excludes
+                + ", cacheFile=" + cacheFile, null);
 
-        // extractSpec: no system-prompt override, no class excludes, non-interactive
-        dev.bxagent.service.BXAgentService.Session updated =
-                delegate.extractSpec(inner, client, cacheFile, null,
-                        Collections.emptyList(), false);
+        LlmClient client = LlmClientFactory.create(jarConfig);
+        log(IStatus.INFO, "LlmClient created: " + client.getClass().getName(), null);
 
-        // Resolve any ambiguous backward mappings automatically (pick index 0).
-        // TODO (Step 8): open a ListSelectionDialog on the UI thread instead.
-        updated = delegate.checkBidirectionality(updated, choices -> 0);
-
-        return wrap(updated, null);
+        try {
+            dev.bxagent.service.BXAgentService.Session updated =
+                    delegate.extractSpec(inner, client, cacheFile, null,
+                            excludes.isEmpty() ? Collections.emptyList() : excludes,
+                            false);
+            updated = delegate.checkBidirectionality(updated, choices -> 0);
+            log(IStatus.INFO, "Mapping extracted successfully.", null);
+            return wrap(updated, null);
+        } catch (Exception e) {
+            log(IStatus.ERROR, "extractMapping failed", e);
+            throw new Exception(e.getMessage() + detailCause(e), e);
+        }
     }
 
     @Override
     public BXAgentSession generate(BXAgentSession session, Path outputDir)
             throws Exception {
+        log(IStatus.INFO, "Generating code into " + outputDir, null);
         dev.bxagent.service.BXAgentService.Session inner = unwrap(session);
-        dev.bxagent.service.BXAgentService.Session updated =
-                delegate.generate(inner, outputDir);
+        try {
+            dev.bxagent.service.BXAgentService.Session updated =
+                    delegate.generate(inner, outputDir);
 
-        Path generatedPath = null;
-        if (updated.generatedTransformation() != null) {
-            generatedPath = outputDir.resolve(
-                    updated.generatedTransformation().fileName());
+            Path generatedPath = null;
+            if (updated.generatedTransformation() != null) {
+                generatedPath = outputDir.resolve(
+                        updated.generatedTransformation().fileName());
+            }
+            log(IStatus.INFO, "Code generated: " + generatedPath, null);
+            return wrap(updated, generatedPath);
+        } catch (Exception e) {
+            log(IStatus.ERROR, "generate failed", e);
+            throw e;
         }
-        return wrap(updated, generatedPath);
     }
 
     @Override
     public ValidationResult validate(BXAgentSession session,
             LlmConfig config, int maxAttempts) throws Exception {
-        // Note: the JAR's validate() has its own internal fix-loop;
-        // maxAttempts is therefore advisory and not forwarded directly.
         dev.bxagent.service.BXAgentService.Session inner = unwrap(session);
-        LlmClient client = LlmClientFactory.create(toJarConfig(config));
+        dev.bxagent.llm.LlmConfig jarConfig = toJarConfig(config);
+        log(IStatus.INFO,
+                "validate — provider=" + jarConfig.getProvider()
+                + ", model=" + jarConfig.getModel(), null);
 
-        CompilationValidator.ValidationResult result =
-                delegate.validate(inner, client);
+        LlmClient client = LlmClientFactory.create(jarConfig);
+        try {
+            CompilationValidator.ValidationResult result =
+                    delegate.validate(inner, client);
 
-        if (result.success()) {
-            return ValidationResult.ok();
-        } else {
-            return ValidationResult.failed(result.attemptErrors());
+            if (result.success()) {
+                log(IStatus.INFO, "Compilation succeeded.", null);
+                return ValidationResult.ok();
+            } else {
+                log(IStatus.WARNING,
+                        "Compilation failed: " + result.getErrorSummary(), null);
+                return ValidationResult.failed(result.attemptErrors());
+            }
+        } catch (Exception e) {
+            log(IStatus.ERROR, "validate failed", e);
+            throw e;
         }
     }
 
@@ -118,9 +165,8 @@ public final class BXAgentServiceAdapter implements IBXAgentService {
     /**
      * Extracts the JAR {@code Session} stored inside a plugin session.
      * Throws {@link IllegalStateException} if the session was not produced by
-     * this adapter (e.g. if a {@link StubBXAgentService} was used previously).
+     * this adapter.
      */
-    @SuppressWarnings("unchecked")
     private static dev.bxagent.service.BXAgentService.Session unwrap(
             BXAgentSession session) {
         Object raw = session.getInternalSession();
@@ -134,19 +180,42 @@ public final class BXAgentServiceAdapter implements IBXAgentService {
 
     /**
      * Converts the plugin's {@link LlmConfig} to the JAR's
-     * {@code dev.bxagent.llm.LlmConfig} using
+     * {@code dev.bxagent.llm.LlmConfig} via
      * {@code LlmConfig.fromProperties(Properties)}.
+     *
+     * <p>The JAR uses these exact property keys (all lower-snake-case with
+     * {@code llm.} prefix):</p>
+     * <ul>
+     *   <li>{@code llm.provider}  — "anthropic", "openai", or "ollama"</li>
+     *   <li>{@code llm.model}     — model name</li>
+     *   <li>{@code llm.api_key}   — API key (Anthropic / OpenAI)</li>
+     *   <li>{@code llm.base_url}  — base URL (Ollama or custom endpoint)</li>
+     * </ul>
      */
     private static dev.bxagent.llm.LlmConfig toJarConfig(LlmConfig cfg) {
         Properties props = new Properties();
-        props.setProperty("provider", cfg.getProvider().name().toLowerCase());
-        props.setProperty("model",    cfg.getModel());
+        props.setProperty("llm.provider", cfg.getProvider().name().toLowerCase());
+        props.setProperty("llm.model",    cfg.getModel());
         if (cfg.getApiKey() != null && !cfg.getApiKey().isEmpty()) {
-            props.setProperty("apiKey", cfg.getApiKey());
+            props.setProperty("llm.api_key", cfg.getApiKey());
         }
         if (cfg.getOllamaUrl() != null && !cfg.getOllamaUrl().isEmpty()) {
-            props.setProperty("baseUrl", cfg.getOllamaUrl());
+            props.setProperty("llm.base_url", cfg.getOllamaUrl());
         }
         return dev.bxagent.llm.LlmConfig.fromProperties(props);
+    }
+
+    /** Formats the root cause of an exception for display in the chat bubble. */
+    private static String detailCause(Throwable t) {
+        Throwable cause = t;
+        while (cause.getCause() != null) cause = cause.getCause();
+        if (cause == t) return "";
+        return "\nCause: " + cause.getClass().getSimpleName()
+                + (cause.getMessage() != null ? ": " + cause.getMessage() : "");
+    }
+
+    /** Logs a message to the Eclipse Error Log view. */
+    private void log(int severity, String message, Throwable t) {
+        LOG.log(new Status(severity, PLUGIN_ID, message, t));
     }
 }

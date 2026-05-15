@@ -1,6 +1,7 @@
 package dev.bxagent.eclipse.service;
 
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * UI-agnostic façade for the BXAgent generation pipeline.
@@ -34,11 +35,13 @@ public interface IBXAgentService {
      * @param session   current session (must have summaries)
      * @param config    LLM configuration (provider, model, key/URL)
      * @param cacheFile optional path to a cached JSON response; {@code null} = live call
+     * @param excludes  EClass/EAttribute names to omit from the mapping prompt;
+     *                  mirrors the CLI {@code --exclude} flag; may be empty but not null
      * @return updated session with {@code spec} populated
      * @throws Exception on LLM error or JSON parse failure
      */
-    BXAgentSession extractMapping(BXAgentSession session, LlmConfig config, Path cacheFile)
-            throws Exception;
+    BXAgentSession extractMapping(BXAgentSession session, LlmConfig config,
+            Path cacheFile, List<String> excludes) throws Exception;
 
     /**
      * Run FreeMarker code generation and write the {@code Transformation.java} file.

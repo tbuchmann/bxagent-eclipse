@@ -21,7 +21,9 @@ public class BXAgentPreferenceInitializer extends AbstractPreferenceInitializer 
         store.setDefault(BXAgentPreferenceConstants.LLM_ANTHROPIC_KEY, ""); //$NON-NLS-1$
         store.setDefault(BXAgentPreferenceConstants.LLM_OPENAI_KEY,    ""); //$NON-NLS-1$
         store.setDefault(BXAgentPreferenceConstants.LLM_OLLAMA_URL,    "http://localhost:11434"); //$NON-NLS-1$
+        store.setDefault(BXAgentPreferenceConstants.LLM_OLLAMA_KEY,    ""); //$NON-NLS-1$ blank = no auth
         store.setDefault(BXAgentPreferenceConstants.AGENT_OUTPUT_DIR,  ""); //$NON-NLS-1$ blank = workspace/generated
         store.setDefault(BXAgentPreferenceConstants.MAX_FIX_ATTEMPTS,  3);
+        store.setDefault(BXAgentPreferenceConstants.AGENT_EXCLUDE_LIST, ""); //$NON-NLS-1$
     }
 }

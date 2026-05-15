@@ -7,13 +7,20 @@
       <category
             id="dev.bxagent.eclipse.category"
             name="BXAgent"/>
-      <view
-            id="dev.bxagent.eclipse.ui.BXAgentView"
-            name="BXAgent Chat"
-            category="dev.bxagent.eclipse.category"
-            class="dev.bxagent.eclipse.ui.BXAgentView"
-            icon="icons/bxagent.png"
-            allowMultiple="false"/>
+       <view
+             id="dev.bxagent.eclipse.ui.BXAgentView"
+             name="BXAgent Chat"
+             category="dev.bxagent.eclipse.category"
+             class="dev.bxagent.eclipse.ui.BXAgentView"
+             icon="icons/bxagent.png"
+             allowMultiple="false"/>
+       <view
+             id="dev.bxagent.eclipse.ui.MappingSpecView"
+             name="BXAgent Mapping Spec"
+             category="dev.bxagent.eclipse.category"
+             class="dev.bxagent.eclipse.ui.MappingSpecView"
+             icon="icons/bxagent.png"
+             allowMultiple="false"/>
    </extension>
 
    <!-- ===== Preference page ===== -->

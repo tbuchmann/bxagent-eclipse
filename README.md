@@ -3,6 +3,8 @@
 BXAgent4Eclipse is an Eclipse plug-in that adds a Copilot-style chat view for model-transformation workflows.
 It guides users through loading two `.ecore` metamodels, extracting a mapping with an LLM, generating a Java transformation class, and validating compilation.
 
+![EclipseView](EclipseIntegration.png)
+
 ## What this project contains
 
 - An Eclipse view: **BXAgent Chat**
