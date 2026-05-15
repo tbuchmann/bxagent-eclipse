@@ -26,6 +26,13 @@ public final class BXAgentSession {
     /** Path to the generated {@code Transformation.java} file. */
     private final Path generatedClass;
 
+    /**
+     * Opaque carrier for the {@code dev.bxagent.service.BXAgentService$Session}
+     * from the fat-JAR.  Set and read only by {@code BXAgentServiceAdapter};
+     * all other code must ignore this field.
+     */
+    private Object internalSession;
+
     public BXAgentSession(String leftSummary, String rightSummary,
             String specJson, Path generatedClass) {
         this.leftSummary = leftSummary;
@@ -54,4 +61,9 @@ public final class BXAgentSession {
 
     public boolean hasSpec()           { return specJson != null; }
     public boolean hasGeneratedClass() { return generatedClass != null; }
+
+    /** For use by {@code BXAgentServiceAdapter} only. */
+    public void   setInternalSession(Object s) { this.internalSession = s; }
+    /** For use by {@code BXAgentServiceAdapter} only. */
+    public Object getInternalSession()         { return internalSession; }
 }

@@ -25,7 +25,7 @@ import dev.bxagent.eclipse.preferences.BXAgentPreferenceConstants;
 import dev.bxagent.eclipse.service.BXAgentSession;
 import dev.bxagent.eclipse.service.IBXAgentService;
 import dev.bxagent.eclipse.service.LlmConfig;
-import dev.bxagent.eclipse.service.StubBXAgentService;
+import dev.bxagent.eclipse.service.BXAgentServiceAdapter;
 import dev.bxagent.eclipse.service.ValidationResult;
 
 /**
@@ -80,8 +80,8 @@ public final class ConversationController {
 
     public ConversationController(BXAgentView view) {
         this.view    = view;
-        // TODO (Steps 1 & 2): replace StubBXAgentService with real BXAgentServiceAdapter
-        this.service = new StubBXAgentService();
+        // Steps 1 & 2 complete: use the real BXAgentServiceAdapter backed by the fat-JAR.
+        this.service = new BXAgentServiceAdapter();
     }
 
     // -----------------------------------------------------------------------
